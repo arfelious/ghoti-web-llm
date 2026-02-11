@@ -132,6 +132,8 @@ export class MLCEngine implements MLCEngineInterface {
   private logitProcessorRegistry?: Map<string, LogitProcessor>;
   private initProgressCallback?: InitProgressCallback;
   private appConfig: AppConfig;
+  private deviceSyncFrequency: number;
+  private unsafeBufferCreation: boolean;
 
   // Signals and flags
   private interruptSignal = false;
@@ -150,6 +152,8 @@ export class MLCEngine implements MLCEngineInterface {
     this.setLogLevel(engineConfig?.logLevel || DefaultLogLevel);
     this.setInitProgressCallback(engineConfig?.initProgressCallback);
     this.setLogitProcessorRegistry(engineConfig?.logitProcessorRegistry);
+    this.deviceSyncFrequency = engineConfig?.deviceSyncFrequency ?? 1;
+    this.unsafeBufferCreation = engineConfig?.unsafeBufferCreation ?? false;
 
     this.chat = new API.Chat(this);
     this.completions = new API.Completions(this);
@@ -320,6 +324,7 @@ export class MLCEngine implements MLCEngineInterface {
     if (this.initProgressCallback !== undefined) {
       tvm.registerInitProgressCallback(this.initProgressCallback);
     }
+    tvm.deviceSyncFrequency = this.deviceSyncFrequency;
 
     // detect GPU
     const gpuDetectOutput = await tvmjs.detectGPUDevice();
@@ -360,6 +365,7 @@ export class MLCEngine implements MLCEngineInterface {
       }
     });
     tvm.initWebGPU(gpuDetectOutput.device);
+    tvm.setUnsafeBufferCreation(this.unsafeBufferCreation);
 
     const tokenizer = await asyncLoadTokenizer(
       modelUrl,

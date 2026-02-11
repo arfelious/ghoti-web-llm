@@ -113,6 +113,18 @@ export interface MLCEngineConfig {
   initProgressCallback?: InitProgressCallback;
   logitProcessorRegistry?: Map<string, LogitProcessor>;
   logLevel?: LogLevel;
+  /**
+   * Controls how often device.sync() is called when loading tensor shards to GPU.
+   * A value of 1 (default) means sync every iteration. A value of N means sync
+   * every N iterations and always on the last iteration of each shard.
+   */
+  deviceSyncFrequency?: number;
+  /**
+   * When true, uses faster buffer creation without async error scopes.
+   * Default false (safe mode with full error handling and device destruction on errors).
+   * Only enable if you have custom error handling at a higher level.
+   */
+  unsafeBufferCreation?: boolean;
 }
 
 /**
