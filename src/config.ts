@@ -8,6 +8,7 @@ import {
   NonNegativeError,
   RangeError,
 } from "./error";
+import { ModelIntegrity } from "./integrity";
 
 /**
  * Conversation template config
@@ -263,6 +264,7 @@ export enum ModelType {
  * @param buffer_size_required_bytes: required `maxStorageBufferBindingSize`, different for each device.
  * @param required_features: feature needed to run this model (e.g. shader-f16).
  * @param model_type: the intended usecase for the model, if unspecified, default to LLM.
+ * @param integrity: optional SRI hashes to verify downloaded artifacts. See {@link ModelIntegrity}.
  */
 export interface ModelRecord {
   model: string;
@@ -274,6 +276,7 @@ export interface ModelRecord {
   buffer_size_required_bytes?: number;
   required_features?: Array<string>;
   model_type?: ModelType;
+  integrity?: ModelIntegrity;
 }
 
 /**
@@ -281,15 +284,28 @@ export interface ModelRecord {
  * passed to the load.
  *
  * @param model_list: models to be used.
- * @param useIndexedDBCache: if true, will use IndexedDBCache to cache models and other artifacts.
- * If false or unspecified, will use the Cache API. For more information of the two, see:
+ * @param cacheBackend: the backend to use for caching models and other artifacts.
+ * If unspecified, will use the Cache API. For more information, see:
  * https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria#what_technologies_store_data_in_the_browser
+ * Supported values are:
+ * - "cache": browser Cache API.
+ * - "indexeddb": IndexedDB-backed cache.
+ * - "cross-origin": Chrome Cross-Origin Storage extension-backed cache.
  *
  * @note Note that the Cache API is more well-tested in WebLLM as of now.
  */
+export type CacheBackend = "cache" | "indexeddb" | "cross-origin";
+
 export interface AppConfig {
   model_list: Array<ModelRecord>;
-  useIndexedDBCache?: boolean;
+  cacheBackend?: CacheBackend;
+}
+
+export function getCacheBackend(appConfig: AppConfig): CacheBackend {
+  if (appConfig.cacheBackend !== undefined) {
+    return appConfig.cacheBackend;
+  }
+  return "cache";
 }
 
 /**
@@ -321,7 +337,7 @@ export const functionCallingModelIds = [
  * current WebLLM npm version.
  */
 export const prebuiltAppConfig: AppConfig = {
-  useIndexedDBCache: false,
+  cacheBackend: "cache",
   model_list: [
     // Llama-3.2
     {
